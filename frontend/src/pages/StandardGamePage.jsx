@@ -207,7 +207,7 @@ export default function StandardGamePage() {
     return (
         <main className="container my-4">
             <header className="text-center mb-3">
-                <h1 className="display-6 fw-bold">
+                <h1 className="display-6 fw-bold site-title">
                     cars<span className="text-danger">Dle</span>.pl
                 </h1>
             </header>
