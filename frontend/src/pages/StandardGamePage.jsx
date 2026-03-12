@@ -1,11 +1,15 @@
-//src/pages/StandardGamePage.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Suggestions from "../components/Suggestions.jsx";
 import History from "../components/History.jsx";
 import WinOverlay from "../components/WinOverlay.jsx";
 import { api } from "../services/api.js";
 import { compareCars } from "../utils/compare.js";
 import { modelImages } from "../constants/media.js";
+
+const HISTORY_STORAGE_KEY = "carsdle_standard_history_v1";
+const REVEAL_STEP_MS = 180;
+const REVEAL_CELLS = 7;
+const REVEAL_TOTAL_MS = REVEAL_STEP_MS * REVEAL_CELLS + 220;
 
 function formatCountdown(rt) {
     if (!rt) return "";
@@ -29,6 +33,62 @@ function isAlreadyPlayed(value) {
     return Boolean(value);
 }
 
+function getTodayKey() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function loadSavedHistory() {
+    try {
+        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (!raw) return [];
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return [];
+
+        if (parsed.dayKey !== getTodayKey()) {
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+            return [];
+        }
+
+        return Array.isArray(parsed.rows) ? parsed.rows : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHistory(rows) {
+    try {
+        localStorage.setItem(
+            HISTORY_STORAGE_KEY,
+            JSON.stringify({
+                dayKey: getTodayKey(),
+                rows,
+            })
+        );
+    } catch {}
+}
+
+function clearSavedHistory() {
+    try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch {}
+}
+
+function carKey(car) {
+    return `${String(car?.marka || "").trim().toLowerCase()}__${String(car?.model || "").trim().toLowerCase()}`;
+}
+
+function addIdsToRows(rows) {
+    return rows.map((r, idx) => ({
+        id: r?.id ?? `${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
+        ...r,
+    }));
+}
+
 export default function StandardGamePage() {
     const [locked, setLocked] = useState(false);
     const [remainingTime, setRemainingTime] = useState(null);
@@ -39,6 +99,8 @@ export default function StandardGamePage() {
     const [suggestions, setSuggestions] = useState(null);
 
     const [history, setHistory] = useState([]);
+    const [isRevealing, setIsRevealing] = useState(false);
+    const [activeRevealId, setActiveRevealId] = useState(null);
 
     const [winData, setWinData] = useState({
         show: false,
@@ -48,11 +110,21 @@ export default function StandardGamePage() {
     });
 
     const pollRef = useRef(null);
+    const revealTimeoutRef = useRef(null);
+
+    const guessedKeys = useMemo(() => new Set(history.map((r) => carKey(r.car))), [history]);
 
     function stopPolling() {
         if (pollRef.current) {
             window.clearInterval(pollRef.current);
             pollRef.current = null;
+        }
+    }
+
+    function clearRevealTimeout() {
+        if (revealTimeoutRef.current) {
+            window.clearTimeout(revealTimeoutRef.current);
+            revealTimeoutRef.current = null;
         }
     }
 
@@ -70,6 +142,7 @@ export default function StandardGamePage() {
 
                 if (!alreadyPlayed) {
                     stopPolling();
+                    clearSavedHistory();
                     window.location.reload();
                 }
             } catch (err) {
@@ -78,11 +151,38 @@ export default function StandardGamePage() {
         }, 1000);
     }
 
+    function filterAlreadyGuessed(list) {
+        if (!Array.isArray(list)) return [];
+        return list.filter((x) => !guessedKeys.has(carKey(x)));
+    }
+
+    function appendHistoryWithReveal(car, states, onFinish) {
+        const rowId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const newRow = { id: rowId, car, states };
+
+        setHistory((prev) => [newRow, ...prev]);
+        setActiveRevealId(rowId);
+        setIsRevealing(true);
+
+        clearRevealTimeout();
+        revealTimeoutRef.current = window.setTimeout(() => {
+            setActiveRevealId(null);
+            setIsRevealing(false);
+            revealTimeoutRef.current = null;
+            onFinish?.();
+        }, REVEAL_TOTAL_MS);
+    }
+
     useEffect(() => {
         let mounted = true;
 
         (async () => {
             try {
+                const restoredHistory = addIdsToRows(loadSavedHistory());
+                if (mounted && restoredHistory.length) {
+                    setHistory(restoredHistory);
+                }
+
                 const st = await api.checkGameStatus();
                 if (!mounted) return;
 
@@ -124,8 +224,13 @@ export default function StandardGamePage() {
         return () => {
             mounted = false;
             stopPolling();
+            clearRevealTimeout();
         };
     }, []);
+
+    useEffect(() => {
+        saveHistory(history);
+    }, [history]);
 
     useEffect(() => {
         function onDocClick(e) {
@@ -139,11 +244,11 @@ export default function StandardGamePage() {
     }, []);
 
     async function loadAllSuggestions() {
-        if (locked) return;
+        if (locked || isRevealing) return;
 
         const all = await api.all();
         if (Array.isArray(all)) {
-            setSuggestions(all.map((x) => ({ marka: x.marka, model: x.model })));
+            setSuggestions(filterAlreadyGuessed(all.map((x) => ({ marka: x.marka, model: x.model }))));
         } else {
             setSuggestions(null);
         }
@@ -151,7 +256,7 @@ export default function StandardGamePage() {
 
     async function onQueryChange(v) {
         setQuery(v);
-        if (locked) return;
+        if (locked || isRevealing) return;
 
         const q = v.trim();
         if (!q) {
@@ -161,14 +266,15 @@ export default function StandardGamePage() {
 
         const found = await api.search(q);
         if (Array.isArray(found)) {
-            setSuggestions(found);
+            setSuggestions(filterAlreadyGuessed(found));
         } else {
             setSuggestions([]);
         }
     }
 
     async function pickSuggestion(s) {
-        if (locked) return;
+        if (locked || isRevealing) return;
+        if (guessedKeys.has(carKey(s))) return;
 
         setQuery("");
         setSuggestions(null);
@@ -176,32 +282,36 @@ export default function StandardGamePage() {
         const chosen = await api.selectedByModel(s.model);
         if (!chosen || chosen.error) return;
         if (!target || !target.model) return;
+        if (guessedKeys.has(carKey(chosen))) return;
+
+        const states = compareCars(target, chosen);
 
         if (target.model === chosen.model) {
             const img = getModelImg(target.model, "");
 
-            await api.checkGameStatus({
-                czyJuzZagrano: "true",
-                sciezkaDoZdjecia: img,
-                wybranyModel: target.model,
-                wybranaMarka: target.marka,
+            appendHistoryWithReveal(chosen, states, async () => {
+                await api.checkGameStatus({
+                    czyJuzZagrano: "true",
+                    sciezkaDoZdjecia: img,
+                    wybranyModel: target.model,
+                    wybranaMarka: target.marka,
+                });
+
+                const st = await api.checkGameStatus();
+
+                setLocked(true);
+                setRemainingTime(st?.remainingTime || null);
+                setWinData({
+                    show: true,
+                    imgSrc: img,
+                    marka: target.marka,
+                    model: target.model,
+                });
+
+                startPolling();
             });
-
-            const st = await api.checkGameStatus();
-
-            setLocked(true);
-            setRemainingTime(st?.remainingTime || null);
-            setWinData({
-                show: true,
-                imgSrc: img,
-                marka: target.marka,
-                model: target.model,
-            });
-
-            startPolling();
         } else {
-            const states = compareCars(target, chosen);
-            setHistory((prev) => [{ car: chosen, states }, ...prev]);
+            appendHistoryWithReveal(chosen, states);
         }
     }
 
@@ -225,8 +335,14 @@ export default function StandardGamePage() {
                             type="text"
                             id="pole_szukania"
                             className="form-control"
-                            placeholder={locked ? "Zagrałeś dziś — wróć jutro 🙂" : "Wyszukaj samochód..."}
-                            disabled={locked}
+                            placeholder={
+                                locked
+                                    ? "Zagrałeś dziś — wróć jutro 🙂"
+                                    : isRevealing
+                                    ? "Odkrywanie wyniku..."
+                                    : "Wyszukaj samochód..."
+                            }
+                            disabled={locked || isRevealing}
                             value={query}
                             onClick={loadAllSuggestions}
                             onChange={(e) => onQueryChange(e.target.value)}
@@ -237,7 +353,7 @@ export default function StandardGamePage() {
 
             {suggestions !== null ? <Suggestions items={suggestions} onPick={pickSuggestion} /> : null}
 
-            <History rows={history} />
+            <History rows={history} activeRevealId={activeRevealId} />
 
             <WinOverlay
                 show={winData.show}

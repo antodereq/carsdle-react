@@ -1,5 +1,15 @@
 export default function WinOverlay({ show, imgSrc, title, countdownText, onClose }) {
     if (!show) return null;
+    function handleClose() {
+        const el = document.querySelector(".win-overlay");
+        if (!el) return onClose();
+
+        el.classList.add("closing");
+
+        setTimeout(() => {
+            onClose();
+        }, 220);
+    }
 
     return (
         <div
@@ -39,8 +49,8 @@ export default function WinOverlay({ show, imgSrc, title, countdownText, onClose
 
                     <button
                         type="button"
-                        className="btn btn-dark mt-4 px-4"
-                        onClick={onClose}
+                        className="btn btn-outline-secondary win-close"
+                        onClick={handleClose}
                     >
                         Zamknij
                     </button>
