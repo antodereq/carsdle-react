@@ -21,7 +21,9 @@ export default function AboutPage() {
                                 <p>Witam Cię na mojej stronie! Dzięki, że jesteś!</p>
                                 <p>Nazywam się Antoni Ulaczyk, uczę się w technikum w Katowicach na kierunku programista.</p>
                                 <p>Pomysł na grę narodził się z mojej pasji do motoryzacji, sportowych samochodów oraz programowania.</p>
+                                <p>Mocno inspirowałem się stroną <a href="https://genshindle.com">genshindle.com</a> – polecam!</p>
                                 <p>
+                                    To mój pierwszy większy projekt, dlatego liczę na feedback. <br/>
                                     Napisz: <strong>carsdle.pl@gmail.com</strong> lub skorzystaj z{" "}
                                     <Link to="/zglos-blad">formularza zgłoszeń</Link>.
                                 </p>
@@ -31,7 +33,13 @@ export default function AboutPage() {
 
                     <div className="card shadow-sm p-3">
                         <h2 className="h4">O stronie</h2>
-                        <p>Strona powstała w HTML, CSS, PHP+MySQL oraz JavaScript/jQuery.</p>
+                        <p>Strona powstała w React JS i PHP + MySQL. Do stylizacji używałem głównie Bootstrapa.</p>
+                        <p>Użyłem darmowych grafik ze stron takich jak: 
+                            <a href="https://pixabay.com/pl/">Pixabay</a>,
+                            <a href="https://www.pexels.com/pl-pl/">Pexels</a>,
+                            <a href="https://unsplash.com/">Unsplash</a>.
+                        </p>
+                        <p>Wszystko jest legalne; jeśli coś budzi wątpliwość, napisz maila.</p>
                     </div>
                 </div>
             </div>
