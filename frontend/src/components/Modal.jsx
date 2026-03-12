@@ -1,3 +1,4 @@
+//src/components/Modal.jsx
 import { useEffect } from "react";
 
 export default function Modal({ show, title, onClose, children, size = "xl" }) {

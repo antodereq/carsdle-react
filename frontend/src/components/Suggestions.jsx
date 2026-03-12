@@ -1,3 +1,4 @@
+//src/components/Suggestions.jsx
 import { modelImages } from "../constants/media.js";
 
 export default function Suggestions({ items, onPick }) {

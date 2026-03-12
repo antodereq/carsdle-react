@@ -1,3 +1,4 @@
+//src/components/SiteNavbar.jsx
 import { NavLink } from "react-router-dom";
 
 function NavItem({ to, children }) {
