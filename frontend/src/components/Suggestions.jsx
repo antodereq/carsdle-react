@@ -1,33 +1,52 @@
-//src/components/Suggestions.jsx
+import { createPortal } from "react-dom";
 import { modelImages } from "../constants/media.js";
 
-export default function Suggestions({ items, onPick }) {
-    if (!items) return null;
+export default function Suggestions({ items, onPick, style }) {
+    if (!items || !style) return null;
 
-    if (items.length === 0) {
-        return (
-            <div id="sugestie" className="list-group mt-3" role="listbox" aria-label="Sugestie modeli">
+    const content = (
+        <div
+            id="sugestie"
+            className="suggestions-panel suggestions-portal list-group shadow"
+            role="listbox"
+            aria-label="Sugestie modeli"
+            style={{
+                position: "fixed",
+                top: `${style.top}px`,
+                left: `${style.left}px`,
+                width: `${style.width}px`,
+            }}
+        >
+            {items.length === 0 ? (
                 <div className="list-group-item text-muted">Brak wyników…</div>
-            </div>
-        );
-    }
+            ) : (
+                items.map((s) => {
+                    const img = modelImages[s.model] || "";
 
-    return (
-        <div id="sugestie" className="list-group mt-3" role="listbox" aria-label="Sugestie modeli">
-            {items.map((s) => {
-                const img = modelImages[s.model] || "";
-                return (
-                    <button
-                        key={`${s.marka}__${s.model}`}
-                        type="button"
-                        className="list-group-item list-group-item-action d-flex align-items-center gap-3 suggestion"
-                        onClick={() => onPick(s)}
-                    >
-                        {img ? <img className="car-thumb rounded" src={img} alt={`Zdjęcie ${s.model}`} /> : null}
-                        <span className="model-name">{s.marka} {s.model}</span>
-                    </button>
-                );
-            })}
+                    return (
+                        <button
+                            key={`${s.marka}__${s.model}`}
+                            type="button"
+                            className="list-group-item list-group-item-action d-flex align-items-center gap-3"
+                            onClick={() => onPick(s)}
+                        >
+                            {img ? (
+                                <img
+                                    className="car-thumb rounded"
+                                    src={img}
+                                    alt={`Zdjęcie ${s.model}`}
+                                />
+                            ) : null}
+
+                            <span className="fw-semibold">
+                                {s.marka} {s.model}
+                            </span>
+                        </button>
+                    );
+                })
+            )}
         </div>
     );
+
+    return createPortal(content, document.body);
 }

@@ -28,6 +28,9 @@ export default function EndlessGamePage() {
     const [isRevealing, setIsRevealing] = useState(false);
     const [activeRevealId, setActiveRevealId] = useState(null);
 
+    const [dropdownStyle, setDropdownStyle] = useState(null);
+
+    const inputGroupRef = useRef(null);
     const revealTimeoutRef = useRef(null);
 
     const guessedKeys = useMemo(() => new Set(history.map((r) => carKey(r.car))), [history]);
@@ -37,6 +40,19 @@ export default function EndlessGamePage() {
             window.clearTimeout(revealTimeoutRef.current);
             revealTimeoutRef.current = null;
         }
+    }
+
+    function updateDropdownPosition() {
+        const el = inputGroupRef.current;
+        if (!el) return;
+
+        const rect = el.getBoundingClientRect();
+
+        setDropdownStyle({
+            top: rect.bottom + 6,
+            left: rect.left,
+            width: rect.width,
+        });
     }
 
     async function newRound() {
@@ -63,6 +79,26 @@ export default function EndlessGamePage() {
         };
     }, []);
 
+    useEffect(() => {
+        if (suggestions !== null) {
+            updateDropdownPosition();
+        }
+    }, [suggestions]);
+
+    useEffect(() => {
+        function handleViewportChange() {
+            if (suggestions !== null) updateDropdownPosition();
+        }
+
+        window.addEventListener("resize", handleViewportChange);
+        window.addEventListener("scroll", handleViewportChange, true);
+
+        return () => {
+            window.removeEventListener("resize", handleViewportChange);
+            window.removeEventListener("scroll", handleViewportChange, true);
+        };
+    }, [suggestions]);
+
     function filterAlreadyGuessed(list) {
         if (!Array.isArray(list)) return [];
         return list.filter((x) => !guessedKeys.has(carKey(x)));
@@ -88,6 +124,8 @@ export default function EndlessGamePage() {
     async function loadAllSuggestions() {
         if (roundOver || isRevealing) return;
 
+        updateDropdownPosition();
+
         const all = await api.all();
         if (Array.isArray(all) && all.length) {
             setSuggestions(filterAlreadyGuessed(all));
@@ -98,6 +136,7 @@ export default function EndlessGamePage() {
 
     async function onQueryChange(v) {
         setQuery(v);
+
         if (roundOver || isRevealing) return;
 
         const q = v.trim();
@@ -105,6 +144,8 @@ export default function EndlessGamePage() {
             setSuggestions(null);
             return;
         }
+
+        updateDropdownPosition();
 
         const found = await api.search(q);
         if (Array.isArray(found) && found.length) {
@@ -120,7 +161,7 @@ export default function EndlessGamePage() {
 
     useEffect(() => {
         function onDocClick(e) {
-            if (!e.target.closest("#pole_szukania") && !e.target.closest("#sugestie")) {
+            if (!e.target.closest(".suggestions-anchor") && !e.target.closest(".suggestions-portal")) {
                 hideSuggestions();
             }
         }
@@ -172,44 +213,56 @@ export default function EndlessGamePage() {
 
             <section className="bg-white p-3 rounded shadow-sm mx-auto text-center" style={{ maxWidth: 800 }}>
                 <div className="d-flex justify-content-between align-items-center px-3">
-                    <div className="score">Score: {score}</div>
-                    <div className="try">Prób: {tries}</div>
+                    <div>Score: {score}</div>
+                    <div>Prób: {tries}</div>
                 </div>
             </section>
 
             <form className="row g-2 justify-content-center mt-3" onSubmit={(e) => e.preventDefault()}>
                 <div className="col-12 col-sm-10 col-lg-8">
-                    <div className="input-group">
-                        <span className="input-group-text">🔎</span>
-                        <input
-                            type="text"
-                            id="pole_szukania"
-                            className="form-control"
-                            placeholder={
-                                roundOver
-                                    ? "Runda zakończona — kliknij Graj dalej"
-                                    : isRevealing
-                                    ? "Odkrywanie wyniku..."
-                                    : "Wyszukaj samochód..."
-                            }
-                            disabled={roundOver || isRevealing}
-                            value={query}
-                            onClick={loadAllSuggestions}
-                            onChange={(e) => onQueryChange(e.target.value)}
-                        />
-                        <button
-                            type="button"
-                            id="playAgainBtn"
-                            className={`btn btn-success ${roundOver ? "" : "d-none"}`}
-                            onClick={newRound}
-                        >
-                            Graj dalej
-                        </button>
+                    <div className="suggestions-anchor">
+                        <div className="input-group" ref={inputGroupRef}>
+                            <span className="input-group-text">🔎</span>
+
+                            <input
+                                type="text"
+                                id="pole_szukania"
+                                className="form-control"
+                                placeholder={
+                                    roundOver
+                                        ? "Runda zakończona — kliknij Graj dalej"
+                                        : isRevealing
+                                        ? "Odkrywanie wyniku..."
+                                        : "Wyszukaj samochód..."
+                                }
+                                disabled={roundOver || isRevealing}
+                                value={query}
+                                onClick={loadAllSuggestions}
+                                onFocus={loadAllSuggestions}
+                                onChange={(e) => onQueryChange(e.target.value)}
+                                autoComplete="off"
+                            />
+
+                            <button
+                                type="button"
+                                id="playAgainBtn"
+                                className={`btn btn-success ${roundOver ? "" : "d-none"}`}
+                                onClick={newRound}
+                            >
+                                Graj dalej
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
 
-            {suggestions !== null ? <Suggestions items={suggestions} onPick={pickSuggestion} /> : null}
+            {suggestions !== null && dropdownStyle ? (
+                <Suggestions
+                    items={suggestions}
+                    onPick={pickSuggestion}
+                    style={dropdownStyle}
+                />
+            ) : null}
 
             <History rows={history} activeRevealId={activeRevealId} />
 

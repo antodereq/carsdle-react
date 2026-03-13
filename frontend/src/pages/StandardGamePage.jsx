@@ -97,6 +97,7 @@ export default function StandardGamePage() {
 
     const [query, setQuery] = useState("");
     const [suggestions, setSuggestions] = useState(null);
+    const [dropdownStyle, setDropdownStyle] = useState(null);
 
     const [history, setHistory] = useState([]);
     const [isRevealing, setIsRevealing] = useState(false);
@@ -111,6 +112,7 @@ export default function StandardGamePage() {
 
     const pollRef = useRef(null);
     const revealTimeoutRef = useRef(null);
+    const inputGroupRef = useRef(null);
 
     const guessedKeys = useMemo(() => new Set(history.map((r) => carKey(r.car))), [history]);
 
@@ -126,6 +128,19 @@ export default function StandardGamePage() {
             window.clearTimeout(revealTimeoutRef.current);
             revealTimeoutRef.current = null;
         }
+    }
+
+    function updateDropdownPosition() {
+        const el = inputGroupRef.current;
+        if (!el) return;
+
+        const rect = el.getBoundingClientRect();
+
+        setDropdownStyle({
+            top: rect.bottom + 6,
+            left: rect.left,
+            width: rect.width,
+        });
     }
 
     function startPolling() {
@@ -233,8 +248,28 @@ export default function StandardGamePage() {
     }, [history]);
 
     useEffect(() => {
+        if (suggestions !== null) {
+            updateDropdownPosition();
+        }
+    }, [suggestions]);
+
+    useEffect(() => {
+        function handleViewportChange() {
+            if (suggestions !== null) updateDropdownPosition();
+        }
+
+        window.addEventListener("resize", handleViewportChange);
+        window.addEventListener("scroll", handleViewportChange, true);
+
+        return () => {
+            window.removeEventListener("resize", handleViewportChange);
+            window.removeEventListener("scroll", handleViewportChange, true);
+        };
+    }, [suggestions]);
+
+    useEffect(() => {
         function onDocClick(e) {
-            if (!e.target.closest("#pole_szukania") && !e.target.closest("#sugestie")) {
+            if (!e.target.closest(".suggestions-anchor") && !e.target.closest(".suggestions-portal")) {
                 setSuggestions(null);
             }
         }
@@ -245,6 +280,8 @@ export default function StandardGamePage() {
 
     async function loadAllSuggestions() {
         if (locked || isRevealing) return;
+
+        updateDropdownPosition();
 
         const all = await api.all();
         if (Array.isArray(all)) {
@@ -263,6 +300,8 @@ export default function StandardGamePage() {
             setSuggestions(null);
             return;
         }
+
+        updateDropdownPosition();
 
         const found = await api.search(q);
         if (Array.isArray(found)) {
@@ -329,29 +368,39 @@ export default function StandardGamePage() {
 
             <form className="row g-2 justify-content-center mt-3" onSubmit={(e) => e.preventDefault()}>
                 <div className="col-12 col-sm-10 col-lg-8">
-                    <div className="input-group">
-                        <span className="input-group-text">🔎</span>
-                        <input
-                            type="text"
-                            id="pole_szukania"
-                            className="form-control"
-                            placeholder={
-                                locked
-                                    ? "Zagrałeś dziś — wróć jutro 🙂"
-                                    : isRevealing
-                                    ? "Odkrywanie wyniku..."
-                                    : "Wyszukaj samochód..."
-                            }
-                            disabled={locked || isRevealing}
-                            value={query}
-                            onClick={loadAllSuggestions}
-                            onChange={(e) => onQueryChange(e.target.value)}
-                        />
+                    <div className="suggestions-anchor">
+                        <div className="input-group" ref={inputGroupRef}>
+                            <span className="input-group-text">🔎</span>
+                            <input
+                                type="text"
+                                id="pole_szukania"
+                                className="form-control"
+                                placeholder={
+                                    locked
+                                        ? "Zagrałeś dziś — wróć jutro 🙂"
+                                        : isRevealing
+                                        ? "Odkrywanie wyniku..."
+                                        : "Wyszukaj samochód..."
+                                }
+                                disabled={locked || isRevealing}
+                                value={query}
+                                onClick={loadAllSuggestions}
+                                onFocus={loadAllSuggestions}
+                                onChange={(e) => onQueryChange(e.target.value)}
+                                autoComplete="off"
+                            />
+                        </div>
                     </div>
                 </div>
             </form>
 
-            {suggestions !== null ? <Suggestions items={suggestions} onPick={pickSuggestion} /> : null}
+            {suggestions !== null && dropdownStyle ? (
+                <Suggestions
+                    items={suggestions}
+                    onPick={pickSuggestion}
+                    style={dropdownStyle}
+                />
+            ) : null}
 
             <History rows={history} activeRevealId={activeRevealId} />
 
