@@ -6,19 +6,54 @@ export const modelImages = {
     "911 GT3 RS": "modele/911gt3rs.jpg",
     "918 Spyder": "modele/918spyder.jpg",
     "Carrera GT": "modele/carreragt.jpg",
+    "Boxster": "modele/boxster.jpg",
     "Supra MK4": "modele/supramk4.jpg",
     "Supra MK5": "modele/supramk5.jpg",
+    "86" : "modele/86.jpg",
+    "Silvia S13": "modele/s13.jpg",
+    "Silvia S14": "modele/s14.jpg",
+    "Silvia S15": "modele/s15.jpg",
     "GT-R": "modele/gtr.jpg",
+    "350z": "350z.jpg",
     "Skyline R34": "modele/skyline.jpg",
     "919 Hybrid Evo": "modele/919hybridevo.jpg",
+    "Civic": "modele/civic.jpg",
+    "Prelude": "modele/prelude.jpg",
+    "Accord": "modele/accord.jpg",
+    "Impreza": "modele/impreza,jpg",
+    "BRZ": "modele/brz.jpg",
+    "Lancer Evolution": "modele/evo.jpg",
+    "Challenger": "modele/challenger.jpg",
+    "Charger": "modele/charger.jpg",
+    "Viper": "modele/viper.jpg",
+    "Mustang": "modele/mustang.jpg",
+    "GT": "modele/gt.jpg",
+    "GT40": "modele/gt40.jpg",
+    "Genesis Coupe": "modele/genesisCoupe.jpg",
     "Gallardo": "modele/gallardo.jpg",
     "Murcielago": "modele/murcielago.jpg",
     "Revuelto": "modele/revuelto.jpg",
+    "Sian": "modele/sian.jpg",
+    "Veneno": "modele/Veneno.jpg",
+    "Temerario": "modele/temerario.jpg",
     "Urus": "modele/urus.jpg",
     "F40": "modele/f40.jpg",
     "F50": "modele/f50.jpg",
-    "LaFerrari": "modele/laferrari.jpg",
-    "812": "modele/812.jpg",
+    "LaFerrari/Aperta": "modele/laferrari.jpg",
+    "296 GTB/GTS": "modele/296.jpg",
+    "Purosangue": "modele/purosangue.jpg",
+    "12Cilindri/Spider": "modele/12Cilindri.jpg",
+    "812 Superfast/GTS": "modele/812.jpg",
+    "Roma/Spider": "modele/roma.jpg",
+    "F12 Berlinetta": "modele/f12.jpg",
+    "F8": "modele/f8.jpg",
+    "488": "modele/488.jpg",
+    "308 GTB": "modele/308.jpg",
+    "Daytona SP3" : "modele/daytonasp3",
+    "Portofino": "modele/portofino.jpg",
+    "FXX K" : "modele/fxxk.jpg",
+    "458": "modele/458/jpg",
+    "Testarossa": "testarossa.jpg",
     "SF90": "modele/sf90.jpg",
     "Enzo": "modele/enzo.jpg",
     "Zonda": "modele/zonda.jpg",
@@ -41,6 +76,7 @@ export const modelImages = {
     "AMG ONE": "modele/amgone.jpg",
     "AMG GT Black Series": "modele/amggtblackseries.jpg",
     "R8": "modele/r8.jpg",
+    "TT": "modele/tt.jpg",
     "RX-7": "modele/rx7.jpg",
     "MX-5": "modele/mx5.jpg",
     "EB110": "modele/eb110.jpg",
@@ -72,6 +108,12 @@ export function brandLogo(marka) {
         case "Mazda": return "img/mazdaLogo.png";
         case "Mercedes": return "img/mercedesLogo.png";
         case "Audi": return "img/audiLogo.png";
+        case "Dodge": return "img/dodgeLogo.png";
+        case "Honda": return "img/hondaLogo.png";
+        case "Subaru": return "img/subaruLogo.png";
+        case "Mitsubishi": return "img/mitsubishiLogo.png";
+        case "Ford": return "img/fordLogo.png";
+        case "Hyundai": return "img/hyundaiLogo.png"
         default: return "";
     }
 }
@@ -84,6 +126,8 @@ export function countryFlag(kraj) {
         case "Szwecja": return "img/sweden.png";
         case "Francja": return "img/france.png";
         case "W.Brytania": return "img/uk.png";
+        case "Ameryka": return "img/america.png";
+        case "Korea": return "img/korea.png";
         default: return "";
     }
 }
