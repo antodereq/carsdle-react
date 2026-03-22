@@ -1,5 +1,5 @@
-//src/pages/EndlessGamePage.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+// src/pages/EndlessGamePage.jsx
+import { useEffect, useRef, useState } from "react";
 import Suggestions from "../components/Suggestions.jsx";
 import History from "../components/History.jsx";
 import WinOverlay from "../components/WinOverlay.jsx";
@@ -7,12 +7,13 @@ import { api } from "../services/api.js";
 import { modelImages } from "../constants/media.js";
 import { compareCars } from "../utils/compare.js";
 
-const REVEAL_STEP_MS = 180;
-const REVEAL_CELLS = 7;
-const REVEAL_TOTAL_MS = REVEAL_STEP_MS * REVEAL_CELLS + 220;
+const REVEAL_TIME = 1500;
 
+//funkcja tworzy unikalne klucz dla każdego samochodu - string np. bmw__m3
 function carKey(car) {
-    return `${String(car?.marka || "").trim().toLowerCase()}__${String(car?.model || "").trim().toLowerCase()}`;
+    const marka = String(car?.marka || "").trim().toLowerCase();
+    const model = String(car?.model || "").trim().toLowerCase();
+    return marka + "__" + model;
 }
 
 export default function EndlessGamePage() {
@@ -21,39 +22,70 @@ export default function EndlessGamePage() {
     const [tries, setTries] = useState(0);
 
     const [target, setTarget] = useState(null);
-    const [suggestions, setSuggestions] = useState(null);
     const [query, setQuery] = useState("");
+    const [suggestions, setSuggestions] = useState(null);
     const [history, setHistory] = useState([]);
 
-    const [overlay, setOverlay] = useState({ show: false, imgSrc: "", title: "" });
+    const [overlay, setOverlay] = useState({
+        show: false,
+        imgSrc: "",
+        title: "",
+    });
+
     const [isRevealing, setIsRevealing] = useState(false);
     const [activeRevealId, setActiveRevealId] = useState(null);
-
     const [dropdownStyle, setDropdownStyle] = useState(null);
 
     const inputGroupRef = useRef(null);
-    const revealTimeoutRef = useRef(null);
-
-    const guessedKeys = useMemo(() => new Set(history.map((r) => carKey(r.car))), [history]);
+    const timeoutRef = useRef(null);
 
     function clearRevealTimeout() {
-        if (revealTimeoutRef.current) {
-            window.clearTimeout(revealTimeoutRef.current);
-            revealTimeoutRef.current = null;
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
         }
     }
-
+    //menu pozycji jest renderowane globalnie, trzeba obliczać jego pozycje - ta funkcja ją zwraca
     function updateDropdownPosition() {
-        const el = inputGroupRef.current;
-        if (!el) return;
+        const element = inputGroupRef.current;
+        if (!element) return;
 
-        const rect = el.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
 
         setDropdownStyle({
             top: rect.bottom + 6,
             left: rect.left,
             width: rect.width,
         });
+    }
+
+    //sprawdza po kluczach czy ten samochód już był wcześniej wybierany
+    function isAlreadyGuessed(car) {
+        const key = carKey(car);
+
+        for (let i = 0; i < history.length; i++) {
+            if (carKey(history[i].car) === key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    //wywala z listy wszystie auta, które już były wybierane, aby uniknąć duplikacji przy zgadywaniu
+    function filterAlreadyGuessed(list) {
+        if (!Array.isArray(list)) {
+            return [];
+        }
+
+        const result = [];
+
+        for (let i = 0; i < list.length; i++) {
+            if (!isAlreadyGuessed(list[i])) {
+                result.push(list[i]);
+            }
+        }
+
+        return result;
     }
 
     async function newRound() {
@@ -64,12 +96,21 @@ export default function EndlessGamePage() {
         setQuery("");
         setSuggestions(null);
         setHistory([]);
-        setOverlay({ show: false, imgSrc: "", title: "" });
         setIsRevealing(false);
         setActiveRevealId(null);
+        setDropdownStyle(null);
+
+        setOverlay({
+            show: false,
+            imgSrc: "",
+            title: "",
+        });
 
         const rnd = await api.randomEndless();
-        if (rnd && !rnd.error) setTarget(rnd);
+
+        if (rnd && !rnd.error) {
+            setTarget(rnd);
+        }
     }
 
     useEffect(() => {
@@ -87,117 +128,165 @@ export default function EndlessGamePage() {
     }, [suggestions]);
 
     useEffect(() => {
-        function handleViewportChange() {
-            if (suggestions !== null) updateDropdownPosition();
+        function handleWindowChange() {
+            if (suggestions !== null) {
+                updateDropdownPosition();
+            }
         }
 
-        window.addEventListener("resize", handleViewportChange);
-        window.addEventListener("scroll", handleViewportChange, true);
+        window.addEventListener("resize", handleWindowChange);
+        window.addEventListener("scroll", handleWindowChange, true);
 
         return () => {
-            window.removeEventListener("resize", handleViewportChange);
-            window.removeEventListener("scroll", handleViewportChange, true);
+            window.removeEventListener("resize", handleWindowChange);
+            window.removeEventListener("scroll", handleWindowChange, true);
         };
     }, [suggestions]);
 
-    function filterAlreadyGuessed(list) {
-        if (!Array.isArray(list)) return [];
-        return list.filter((x) => !guessedKeys.has(carKey(x)));
-    }
+    useEffect(() => {
+        function handleDocumentClick(e) {
+            const clickedInsideAnchor = e.target.closest(".suggestions-anchor");
+            const clickedInsidePortal = e.target.closest(".suggestions-portal");
 
-    function appendHistoryWithReveal(car, states, onFinish) {
-        const rowId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const newRow = { id: rowId, car, states };
+            if (!clickedInsideAnchor && !clickedInsidePortal) {
+                setSuggestions(null);
+            }
+        }
 
-        setHistory((prev) => [newRow, ...prev]);
-        setActiveRevealId(rowId);
-        setIsRevealing(true);
+        document.addEventListener("click", handleDocumentClick);
 
-        clearRevealTimeout();
-        revealTimeoutRef.current = window.setTimeout(() => {
-            setActiveRevealId(null);
-            setIsRevealing(false);
-            revealTimeoutRef.current = null;
-            onFinish?.();
-        }, REVEAL_TOTAL_MS);
-    }
+        return () => {
+            document.removeEventListener("click", handleDocumentClick);
+        };
+    }, []);
 
     async function loadAllSuggestions() {
-        if (roundOver || isRevealing) return;
+        if (roundOver || isRevealing) {
+            return;
+        }
 
         updateDropdownPosition();
 
         const all = await api.all();
-        if (Array.isArray(all) && all.length) {
+
+        if (Array.isArray(all) && all.length > 0) {
             setSuggestions(filterAlreadyGuessed(all));
         } else {
-            setSuggestions(null);
+            setSuggestions([]);
         }
     }
 
-    async function onQueryChange(v) {
-        setQuery(v);
+    async function handleInputChange(value) {
+        setQuery(value);
+        if (roundOver || isRevealing) {
+            return;
+        }
 
-        if (roundOver || isRevealing) return;
+        const text = value.trim();
 
-        const q = v.trim();
-        if (!q) {
+        if (text === "") {
             setSuggestions(null);
             return;
         }
 
         updateDropdownPosition();
 
-        const found = await api.search(q);
-        if (Array.isArray(found) && found.length) {
+        const found = await api.search(text);
+
+        if (Array.isArray(found) && found.length > 0) {
             setSuggestions(filterAlreadyGuessed(found));
         } else {
             setSuggestions([]);
         }
     }
 
-    function hideSuggestions() {
-        setSuggestions(null);
+    function addHistoryRowWithReveal(car, states, afterReveal) {
+        const rowId = Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+
+        const newRow = {
+            id: rowId,
+            car: car,
+            states: states,
+        };
+
+        setHistory(function (prev) {
+            return [newRow, ...prev];
+        });
+
+        setActiveRevealId(rowId);
+        setIsRevealing(true);
+
+        clearRevealTimeout();
+
+        timeoutRef.current = setTimeout(function () {
+            setActiveRevealId(null);
+            setIsRevealing(false);
+            timeoutRef.current = null;
+
+            if (afterReveal) {
+                afterReveal();
+            }
+        }, REVEAL_TIME);
     }
 
-    useEffect(() => {
-        function onDocClick(e) {
-            if (!e.target.closest(".suggestions-anchor") && !e.target.closest(".suggestions-portal")) {
-                hideSuggestions();
-            }
+    async function pickSuggestion(suggestion) {
+        if (roundOver || isRevealing) {
+            return;
         }
 
-        document.addEventListener("click", onDocClick);
-        return () => document.removeEventListener("click", onDocClick);
-    }, []);
-
-    async function pickSuggestion(s) {
-        if (roundOver || isRevealing) return;
-        if (guessedKeys.has(carKey(s))) return;
+        if (isAlreadyGuessed(suggestion)) {
+            return;
+        }
 
         setQuery("");
-        hideSuggestions();
+        setSuggestions(null);
 
-        const chosen = await api.selectedByModel(s.model);
-        if (!chosen || chosen.error) return;
-        if (!target || !target.model) return;
-        if (guessedKeys.has(carKey(chosen))) return;
+        const chosen = await api.selectedByModel(suggestion.model);
+
+        if (!chosen || chosen.error) {
+            return;
+        }
+
+        if (!target || !target.model) {
+            return;
+        }
+
+        if (isAlreadyGuessed(chosen)) {
+            return;
+        }
 
         const states = compareCars(target, chosen);
 
-        if (target.model === chosen.model) {
-            appendHistoryWithReveal(chosen, states, () => {
-                setScore((x) => x + 1);
+        if (chosen.model === target.model) {
+            addHistoryRowWithReveal(chosen, states, function () {
+                setScore(function (prev) {
+                    return prev + 1;
+                });
+
                 setOverlay({
                     show: true,
                     imgSrc: modelImages[chosen.model] || "",
                     title: `Brawo! Trafiłeś: <strong>${target.marka} ${target.model}</strong>.`,
                 });
+
                 setRoundOver(true);
             });
         } else {
-            setTries((x) => x + 1);
-            appendHistoryWithReveal(chosen, states);
+            addHistoryRowWithReveal(chosen, states, function () {
+                setTries(function (prev) {
+                    return prev + 1;
+                });
+            });
+        }
+    }
+
+    let placeholder = "Wyszukaj samochód...";
+
+    if (roundOver) {
+        placeholder = "Runda zakończona — kliknij Graj dalej";
+    } else {
+        if (isRevealing) {
+            placeholder = "Odkrywanie wyniku...";
         }
     }
 
@@ -212,14 +301,20 @@ export default function EndlessGamePage() {
                 </p>
             </header>
 
-            <section className="bg-white p-3 rounded shadow-sm mx-auto text-center" style={{ maxWidth: 800 }}>
+            <section
+                className="bg-white p-3 rounded shadow-sm mx-auto text-center"
+                style={{ maxWidth: 800 }}
+            >
                 <div className="d-flex justify-content-between align-items-center px-3">
                     <div>Score: {score}</div>
                     <div>Prób: {tries}</div>
                 </div>
             </section>
 
-            <form className="row g-2 justify-content-center mt-3" onSubmit={(e) => e.preventDefault()}>
+            <form
+                className="row g-2 justify-content-center mt-3"
+                onSubmit={(e) => e.preventDefault()}
+            >
                 <div className="col-12 col-sm-10 col-lg-8">
                     <div className="suggestions-anchor">
                         <div className="input-group" ref={inputGroupRef}>
@@ -229,41 +324,37 @@ export default function EndlessGamePage() {
                                 type="text"
                                 id="pole_szukania"
                                 className="form-control"
-                                placeholder={
-                                    roundOver
-                                        ? "Runda zakończona — kliknij Graj dalej"
-                                        : isRevealing
-                                        ? "Odkrywanie wyniku..."
-                                        : "Wyszukaj samochód..."
-                                }
+                                placeholder={placeholder}
                                 disabled={roundOver || isRevealing}
                                 value={query}
-                                onClick={loadAllSuggestions}
                                 onFocus={loadAllSuggestions}
-                                onChange={(e) => onQueryChange(e.target.value)}
+                                onClick={loadAllSuggestions}
+                                onChange={(e) => handleInputChange(e.target.value)}
                                 autoComplete="off"
                             />
 
-                            <button
-                                type="button"
-                                id="playAgainBtn"
-                                className={`btn btn-success ${roundOver ? "" : "d-none"}`}
-                                onClick={newRound}
-                            >
-                                Graj dalej
-                            </button>
+                            {roundOver && (
+                                <button
+                                    type="button"
+                                    id="playAgainBtn"
+                                    className="btn btn-success"
+                                    onClick={newRound}
+                                >
+                                    Graj dalej
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             </form>
 
-            {suggestions !== null && dropdownStyle ? (
+            {suggestions !== null && dropdownStyle && (
                 <Suggestions
                     items={suggestions}
                     onPick={pickSuggestion}
                     style={dropdownStyle}
                 />
-            ) : null}
+            )}
 
             <History rows={history} activeRevealId={activeRevealId} />
 
@@ -271,7 +362,14 @@ export default function EndlessGamePage() {
                 show={overlay.show}
                 imgSrc={overlay.imgSrc}
                 title={overlay.title}
-                onClose={() => setOverlay((o) => ({ ...o, show: false }))}
+                onClose={() =>
+                    setOverlay(function (prev) {
+                        return {
+                            ...prev,
+                            show: false,
+                        };
+                    })
+                }
             />
         </main>
     );

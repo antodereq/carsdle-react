@@ -1,5 +1,5 @@
 //src/components/Suggestions.jsx
-import { createPortal } from "react-dom";
+import { createPortal } from "react-dom"; //renderuj ten komponent gdzie indziej w DOM (np. w body)
 import { modelImages } from "../constants/media.js";
 
 export default function Suggestions({ items, onPick, style }) {
@@ -21,26 +21,26 @@ export default function Suggestions({ items, onPick, style }) {
             {items.length === 0 ? (
                 <div className="list-group-item text-muted">Brak wyników…</div>
             ) : (
-                items.map((s) => {
-                    const img = modelImages[s.model] || "";
+                items.map((item) => {
+                    const img = modelImages[item.model] || "";
 
                     return (
                         <button
-                            key={`${s.marka}__${s.model}`}
+                            key={`${item.marka}__${item.model}`}
                             type="button"
                             className="list-group-item list-group-item-action d-flex align-items-center gap-3"
-                            onClick={() => onPick(s)}
+                            onClick={() => onPick(item)}
                         >
                             {img ? (
                                 <img
                                     className="car-thumb rounded"
                                     src={img}
-                                    alt={`Zdjęcie ${s.model}`}
+                                    alt={`Zdjęcie ${item.model}`}
                                 />
                             ) : null}
 
                             <span className="fw-semibold">
-                                {s.marka} {s.model}
+                                {item.marka} {item.model}
                             </span>
                         </button>
                     );

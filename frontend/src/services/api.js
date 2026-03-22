@@ -35,8 +35,7 @@ function safeJson(text) {
 }
 
 export const api = {
-    // all.php ma inne nazwy pól dla napędów/nadwozi/skrzyni/lat,
-    // ale do sugestii i listy i tak potrzebujemy głównie marka/model.
+    // all.php ma inne nazwy pól dla napędów/nadwozi/skrzyni/lat, ale do sugestii i listy i tak potrzebujemy tylko marka/model.
     all: () => postNoBody("all.php"),
 
     search: (input) => postForm("search.php", { input }),
