@@ -1,3 +1,4 @@
+//src/components/History.jsx
 import { brandLogo, countryFlag } from "../constants/media.js";
 
 const stateToClass = (s) => (s === "ok" ? "cell-ok" : s === "partial" ? "cell-partial" : "cell-bad");

@@ -1,3 +1,4 @@
+//src/components/WinOverlay.jsx
 export default function WinOverlay({ show, imgSrc, title, countdownText, onClose }) {
     if (!show) return null;
     function handleClose() {

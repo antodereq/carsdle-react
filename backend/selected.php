@@ -22,7 +22,16 @@ if (!empty($_POST['model'])) {
     $wybranySamochodResult = mysqli_query($connection, $query);
 
     if (mysqli_num_rows($wybranySamochodResult) > 0) {
-        $wybranySamochod = mysqli_fetch_assoc($wybranySamochodResult);
+        $rowWybranySamochod = mysqli_fetch_assoc($wybranySamochodResult);
+        $wybranySamochod = [
+            "marka" => $rowWybranySamochod["marka"],
+            "model" => $rowWybranySamochod["model"],
+            "napedy" => $rowWybranySamochod["napedy"],
+            "nadwozia" => $rowWybranySamochod["nadwozia"],
+            "skrzynie" => $rowWybranySamochod["skrzynie"],
+            "roczniki" => $rowWybranySamochod["roczniki"],
+            "kraj" => $rowWybranySamochod["kraj"],
+        ];
         echo json_encode($wybranySamochod);
     } else {
         $wybranySamochod = array('error' => "Nie znaleziono wyników dla modelu: " . $model);

@@ -13,6 +13,7 @@ export default function App() {
         <>
             <SiteNavbar />
             <Routes>
+                {/* Gdy ktoś wchodzi na /, jest przekierowany na /standard - zabezpieczenie przed "zabawą" adresem strony */}
                 <Route path="/" element={<Navigate to="/standard" replace />} />
 
                 <Route path="/standard" element={<StandardGamePage />} />
@@ -29,7 +30,7 @@ export default function App() {
                 <Route path="/jakGrac.html" element={<Navigate to="/jak-grac" replace />} />
                 <Route path="/oAutorze.html" element={<Navigate to="/o-autorze" replace />} />
 
-
+                {/* Każdy nieznany adres przekierowuje na /standard */}
                 <Route path="*" element={<Navigate to="/standard" replace />} />
             </Routes>
         </>

@@ -1,3 +1,4 @@
+//src/components/Suggestions.jsx
 import { createPortal } from "react-dom";
 import { modelImages } from "../constants/media.js";
 

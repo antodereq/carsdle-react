@@ -1,3 +1,4 @@
+//src/pages/EndlessGamePage.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import Suggestions from "../components/Suggestions.jsx";
 import History from "../components/History.jsx";

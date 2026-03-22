@@ -67,10 +67,17 @@ if (!empty($availableIds)) {
     $resultLosowySamochod = mysqli_query($connection, $losowySamochodQuery);
     $rowLosowySamochod = mysqli_fetch_assoc($resultLosowySamochod);
 
-    
+    $losowySamochod = [
+        "marka" => $rowLosowySamochod["marka"],
+        "model" => $rowLosowySamochod["model"],
+        "napedy" => $rowLosowySamochod["napedy"],
+        "nadwozia" => $rowLosowySamochod["nadwozia"],
+        "skrzynie" => $rowLosowySamochod["skrzynie"],
+        "roczniki" => $rowLosowySamochod["roczniki"],
+        "kraj" => $rowLosowySamochod["kraj"]
+    ];
 
-    // Przekazanie danych w formacie JSON
-    echo json_encode($rowLosowySamochod);
+    echo json_encode($losowySamochod, JSON_UNESCAPED_UNICODE);
 } else {
     echo json_encode(["error" => "random.php linia 75 coś się zjebało"]);
 }

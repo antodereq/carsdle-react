@@ -1,75 +1,92 @@
-export function compareCars(wylosowany, wybrany) {
-    const safeSplitRange = (str) => {
-        const s = String(str || "").trim();
-        if (!s.includes("-")) return [s, s];
-        return s.split("-").map((x) => x.trim());
-    };
+export function compareCars(wylosowany, wybrany){
+    //funkcja która robi z "2010 - 2016" -> ["2010", "2016"] albo "2024" -> ["2024", "2024"]
+    function splitDatesIntoArray(str){
+        const datesString = String(str || "").trim();   
+        if(!datesString.includes("-")){ 
+            const twoDatesArr = [datesString, datesString];
+            return twoDatesArr;
+        }
+        const twoDatesArr = datesString.split("-").map((x) => x.trim());
+        return twoDatesArr;
+    }
+    const [drawnStartYear, drawnEndYear] = splitDatesIntoArray(wylosowany.roczniki);
+    const [chosenStartYear, chosenEndYear] = splitDatesIntoArray(wybrany.roczniki);
+    
+    function getArrow(drawn, chosen){
+        if(Number(drawn) > Number(chosen)){return "↑"}
+        if(Number(drawn) < Number(chosen)){return "↓"}
+        return "✓";
+    }
+    const startArrow = getArrow(drawnStartYear, chosenStartYear);
+    const endArrow = getArrow(drawnEndYear, chosenEndYear);
+    const yearsWithArrows = `${startArrow}${chosenStartYear} - ${chosenEndYear}${endArrow}`; //string
 
-    const [rokPStart, rokPEnd] = safeSplitRange(wylosowany.roczniki);
-    const [rokWStart, rokWEnd] = safeSplitRange(wybrany.roczniki);
+    function getYearsMatchStatus(drawnStart, drawnEnd, chosenStart, chosenEnd){
+        let matchStatus = "";
+        if(drawnStart === chosenStart && drawnEnd === chosenEnd){matchStatus = "ok";}
+        else if(drawnStart === chosenStart || drawnEnd === chosenEnd){matchStatus = "partial";}
+        else{matchStatus = "bad";}
+        return matchStatus;
+    }
+    const yearsMatchStatus = getYearsMatchStatus(
+        drawnStartYear,
+        drawnEndYear,
+        chosenStartYear,
+        chosenEndYear
+    );
+    
+    function splitValuesIntoArray(str){
+        const stringValues = String(str || "").trim();
+        if(stringValues === ""){return [];}
+        const valuesArray = stringValues.split(",").map((x) => x.trim()).filter(Boolean);
+        return valuesArray; //np ["automat", "manual"] albo ["coupe", "sedan", "roadster"]
+    }
+    const drawnBodyTypes = splitValuesIntoArray(wylosowany.nadwozia);
+    const chosenBodyTypes = splitValuesIntoArray(wybrany.nadwozia);
 
-    const arrowStart = (rokWStart > rokPStart) ? "↓" : (rokWStart < rokPStart) ? "↑" : "✓";
-    const arrowEnd   = (rokWEnd   > rokPEnd)   ? "↓" : (rokWEnd   < rokPEnd)   ? "↑" : "✓";
-    const rocznikiZeStrzalkami = `${arrowStart}${rokWStart} - ${rokWEnd}${arrowEnd}`;
+    const drawnGearboxes = splitValuesIntoArray(wylosowany.skrzynie);
+    const chosenGearboxes = splitValuesIntoArray(wybrany.skrzynie);
 
-    const roczState =
-        (rokPStart == rokWStart && rokPEnd == rokWEnd) ? "ok" :
-            ((rokPStart == rokWStart || rokPEnd == rokWEnd) ? "partial" : "bad");
+    const drawnDrives = splitValuesIntoArray(wylosowany.napedy);
+    const chosenDrives = splitValuesIntoArray(wybrany.napedy);
 
-    const split2 = (str) => {
-        const s = String(str || "").replace(/\s+/g, "");
-        const parts = s ? s.split(",") : [];
-        return [parts[0] || null, parts[1] || null];
-    };
+    function getArrayMatchStatus(drawnArr, chosenArr) {
+        const hasSameLength = drawnArr.length === chosenArr.length; //true lub false
+        //↓ np.["manual", "automat"] - kolejność ważna
+        const sortedDrawn = [...drawnArr].sort(); 
+        const sortedChosen = [...chosenArr].sort(); 
 
-    const split3 = (str) => {
-        const s = String(str || "").replace(/\s+/g, "");
-        const parts = s ? s.split(",") : [];
-        return [parts[0] || null, parts[1] || null, parts[2] || null];
-    };
+        const isExactMatch = hasSameLength && sortedDrawn.every((value, index) => value === sortedChosen[index]); // sprawdzam czy "manual" === sortedChosen[0] 
 
-    const [pNapWyl1, pNapWyl2] = split2(wylosowany.napedy);
-    const [pNapWyb1, pNapWyb2] = split2(wybrany.napedy);
-
-    const napedState = (() => {
-        if ((pNapWyl1 === pNapWyb1 && pNapWyl2 === pNapWyb2) || (pNapWyl1 === pNapWyb2 && pNapWyl2 === pNapWyb1)) return "ok";
-        if ([pNapWyb1, pNapWyb2].some((x) => x && (x === pNapWyl1 || x === pNapWyl2))) return "partial";
+        if (isExactMatch) {return "ok";}
+        const hasPartialMatch = chosenArr.some((value) => drawnArr.includes(value));
+        
+        if (hasPartialMatch) {return "partial";}
         return "bad";
-    })();
+    }
+    const bodyMatchStatus = getArrayMatchStatus(drawnBodyTypes, chosenBodyTypes);
+    const gearboxMatchStatus = getArrayMatchStatus(drawnGearboxes, chosenGearboxes);
+    const driveMatchStatus = getArrayMatchStatus(drawnDrives, chosenDrives);
 
-    const [n1Wyl, n2Wyl, n3Wyl] = split3(wylosowany.nadwozia);
-    const [n1Wyb, n2Wyb, n3Wyb] = split3(wybrany.nadwozia);
+    function compareOneParam(drawn, chosen){
+        if(drawn === chosen){
+            return "ok";
+        } else {
+            return "bad";
+        }
+    }
 
-    const nadState = (() => {
-        const equalAll =
-            (n1Wyl === n1Wyb && n2Wyl === n2Wyb && n3Wyl === n3Wyb) ||
-            (n2Wyl === null && n2Wyb === null && n1Wyl === n1Wyb && n3Wyl === null && n3Wyb === null);
-        if (equalAll) return "ok";
-        const poolWyl = [n1Wyl, n2Wyl, n3Wyl].filter(Boolean);
-        const poolWyb = [n1Wyb, n2Wyb, n3Wyb].filter(Boolean);
-        if (poolWyb.some((x) => poolWyl.includes(x))) return "partial";
-        return "bad";
-    })();
+    const brandMatchStatus = compareOneParam(wylosowany.marka, wybrany.marka);
+    const countryMatchStatus = compareOneParam(wylosowany.kraj, wybrany.kraj);
 
-    const [s1Wyl, s2Wyl] = split2(wylosowany.skrzynie);
-    const [s1Wyb, s2Wyb] = split2(wybrany.skrzynie);
-
-    const skrzState = (() => {
-        if ((s1Wyl === s1Wyb && s2Wyl === s2Wyb) || (s1Wyl === s2Wyb && s2Wyl === s1Wyb)) return "ok";
-        if ([s1Wyb, s2Wyb].some((x) => x && (x === s1Wyl || x === s2Wyl))) return "partial";
-        return "bad";
-    })();
-
-    const krajState = (wylosowany.kraj === wybrany.kraj) ? "ok" : "bad";
-    const brandState = (wylosowany.marka === wybrany.marka) ? "ok" : "bad";
-
+    //stare klucze używane w innych plikach, TODO: zmienić w przyszłości aby nie używać kluczy
     return {
-        brandState,
-        roczState,
-        rocznikiZeStrzalkami,
-        napedState,
-        nadState,
-        skrzState,
-        krajState
+        brandState: brandMatchStatus,
+        roczState: yearsMatchStatus,
+        rocznikiZeStrzalkami: yearsWithArrows,
+        napedState: driveMatchStatus,
+        nadState: bodyMatchStatus,
+        skrzState: gearboxMatchStatus,
+        krajState: countryMatchStatus
     };
 }
