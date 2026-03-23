@@ -1,5 +1,5 @@
 //src/components/Suggestions.jsx
-import { createPortal } from "react-dom"; //renderuj ten komponent gdzie indziej w DOM (np. w body)
+import { createPortal } from "react-dom"; //renderuj ten komponent gdzie indziej w DOM (np. w body) -> trzeba potem podać jego położenie w StandardGame i EndlessGame
 import { modelImages } from "../constants/media.js";
 
 export default function Suggestions({ items, onPick, style }) {

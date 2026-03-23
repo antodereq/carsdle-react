@@ -1,3 +1,4 @@
+//src/pages/CarDatabasePage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api.js";
 import { modelImages } from "../constants/media.js";

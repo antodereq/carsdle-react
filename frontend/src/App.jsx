@@ -1,3 +1,4 @@
+//src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import SiteNavbar from "./components/SiteNavbar.jsx";
 

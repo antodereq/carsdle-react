@@ -2,7 +2,7 @@
 export default function WinOverlay({ show, imgSrc, title, countdownText, onClose }) {
     if (!show) return null;
     function handleClose() {
-        const el = document.querySelector(".win-overlay");
+        const el = document.querySelector(".win-overlay"); //szuka <div className="win-overlay">, teraz będzie jego odniesieniem
         if (!el) return onClose();
 
         el.classList.add("closing");
@@ -25,7 +25,7 @@ export default function WinOverlay({ show, imgSrc, title, countdownText, onClose
                     type="button"
                     className="btn-close position-absolute top-0 end-0 m-3"
                     aria-label="Zamknij"
-                    onClick={onClose}
+                    onClick={handleClose}
                 />
 
                 {imgSrc ? (

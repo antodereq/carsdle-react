@@ -1,3 +1,4 @@
+//src/utils/compare.js - pisałem sam z konsultacją z AI - nie vibecoding
 export function compareCars(wylosowany, wybrany){
     //funkcja która robi z "2010 - 2016" -> ["2010", "2016"] albo "2024" -> ["2024", "2024"]
     function splitDatesIntoArray(str){

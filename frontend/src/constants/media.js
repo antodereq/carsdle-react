@@ -1,3 +1,4 @@
+//src/constants/media.jsx
 export const modelImages = {
     "Aventador": "modele/aventador.jpg",
     "Huracan": "modele/huracan.jpg",

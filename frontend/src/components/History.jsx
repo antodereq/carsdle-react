@@ -1,3 +1,4 @@
+//src/components/History.jsx - robiłem sam konsultując się z AI - nie kopiowałem kodu, to nie vibecoding
 import { brandLogo, countryFlag } from "../constants/media.js";
 
 //funkcja która na podstawie matchState przyznaje klasy css zmieniające kolor komórki tabeli
