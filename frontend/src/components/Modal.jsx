@@ -4,7 +4,7 @@ import { useEffect } from "react";
 export default function Modal({ show, title, onClose, children, size = "xl" }) {
     useEffect(() => {
         function onEsc(e) {
-            if (e.key === "Escape") onClose?.();
+            if (e.key === "Escape") onClose?.(); //?. = optional chaining czyli: jeśli onClose istnieje -> wywołaj
         }
         if (show) document.addEventListener("keydown", onEsc);
         return () => document.removeEventListener("keydown", onEsc);
