@@ -3,54 +3,41 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api.js";
 import { modelImages } from "../constants/media.js";
 import Modal from "../components/Modal.jsx";
-
-export default function CarDatabasePage() {
-    const [cars, setCars] = useState([]);
+export default function CarDatabasePage(){
     const [loading, setLoading] = useState(true);
-    const [modal, setModal] = useState({ show: false, title: "", car: null });
+    const [cars, setCars] = useState([]);
+    const [modal, setModal] = useState({show: false, title: "", car: null})
     const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-
     useEffect(() => {
-        let mounted = true;
-
+        let mounted = true;     //zmienna pomocnicza określająca, czy komponent istnieje na ekranie, chroni przed próbą ustawienia state na NIEISTNIEJĄCYM komponencie
         (async () => {
             setLoading(true);
-            const list = await api.all();
-
-            if (!mounted) return;
-
-            if (Array.isArray(list)) {
-                const normalized = list
-                    .filter((x) => x && x.marka && x.model)
-                    .map((x) => ({ marka: x.marka, model: x.model }));
-                setCars(normalized);
+            const carListfromApi = await api.all(); //asynchroniczność - pobieranie api może trochę potrwać, więc do czasu pobrania nie blokuje całej reszty komponentu
+            if(!mounted) return; //jeśli poszedł request do api, ale user zdążył już wyłączyć stronę (mounted == false) to przerwij asynchroniczny proces
+            if(Array.isArray(carListfromApi)){
+                const normalizedList = carListfromApi.filter((list) => list && list.marka && list.model).map((list) => ({marka: list.marka, model: list.model}));
+                setCars(normalizedList);
             } else {
                 setCars([]);
             }
-
             setLoading(false);
         })();
-
         return () => {
             mounted = false;
         };
     }, []);
-
-    async function openCar(model) {
-        const car = await api.selectedByModel(model);
-
-        if (!car || car.error || !car.model) {
+    async function openCarModal(model){
+        const clickedCar = await api.selectedByModel(model);
+        if (!clickedCar || clickedCar.error || !clickedCar.model) {
             setModal({ show: true, title: "Błąd", car: { error: true } });
             return;
         }
-
         setModal({
             show: true,
-            title: `${car.marka || ""} ${car.model || ""}`.trim(),
-            car,
+            title: `${clickedCar.marka || ""} ${clickedCar.model || ""}`.trim(),
+            car: clickedCar,
         });
     }
-
     const groupedCars = useMemo(() => {
         const groups = cars.reduce((acc, car) => {
             if (!acc[car.marka]) acc[car.marka] = [];
@@ -58,15 +45,31 @@ export default function CarDatabasePage() {
             return acc;
         }, {});
 
-        return Object.entries(groups)
+        return Object.entries(groups) //Zmienia obiekt na tablicę par
             .sort((a, b) => a[0].localeCompare(b[0], "pl"))
             .map(([marka, models]) => ({
                 marka,
                 models: models.sort((a, b) => a.model.localeCompare(b.model, "pl")),
             }));
     }, [cars]);
-
-    return (
+// DOSTAJĘ:
+//     [
+//   {
+//     marka: "Audi",
+//     models: [
+//       { marka: "Audi", model: "R8" },
+//       { marka: "Audi", model: "RS6" }
+//     ]
+//   },
+//   {
+//     marka: "BMW",
+//     models: [
+//       { marka: "BMW", model: "M3" },
+//       { marka: "BMW", model: "M4" }
+//     ]
+//   }
+// ]
+    return(
         <main className="container my-4">
             <header className="text-center mb-4">
                 <h1 className="display-6 fw-bold site-title">
@@ -121,7 +124,7 @@ Obecna logika jest połączeniem zrównoważonej rozgrywki z rzetelnym oddaniem 
                         <button
                             type="button"
                             className="btn btn-link p-0 mt-2 text-decoration-underline"
-                            onClick={() => setDescriptionExpanded((prev) => !prev)}
+                            onClick={() => setDescriptionExpanded((prev) => !prev)} //jeśli jest false to ustaw true, jeśli jest true to ustaw false
                         >
                             {descriptionExpanded ? "Zwiń" : "Rozwiń"}
                         </button>
@@ -153,10 +156,10 @@ Obecna logika jest połączeniem zrównoważonej rozgrywki z rzetelnym oddaniem 
                                             className="card h-100 shadow-sm car-item"
                                             role="button"
                                             tabIndex={0}
-                                            onClick={() => openCar(s.model)}
+                                            onClick={() => openCarModal(s.model)}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter" || e.key === " ") {
-                                                    openCar(s.model);
+                                                    openCarModal(s.model);
                                                 }
                                             }}
                                         >

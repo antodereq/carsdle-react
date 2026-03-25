@@ -1,7 +1,7 @@
 //src/components/Suggestions.jsx
 import { createPortal } from "react-dom"; //renderuj ten komponent gdzie indziej w DOM (np. w body) -> trzeba potem podać jego położenie w StandardGame i EndlessGame
 import { modelImages } from "../constants/media.js";
-
+//Suggestions to okno z podpowiedziami modeli samochodów, ale ważne - on sam nic nie wyszukuje, on tylko dostaje listę items, renderuje ją mówi parentowi: „kliknięto ten element”
 export default function Suggestions({ items, onPick, style }) {
     if (!items || !style) return null;
 
@@ -11,7 +11,7 @@ export default function Suggestions({ items, onPick, style }) {
             className="suggestions-panel suggestions-portal list-group shadow"
             role="listbox"
             aria-label="Sugestie modeli"
-            style={{
+            style={{                //Pochodzi z updateDropdownPosition() czyli parent liczy pozycję inputa i przekazuje ją do komponentu
                 position: "fixed",
                 top: `${style.top}px`,
                 left: `${style.left}px`,
@@ -48,6 +48,6 @@ export default function Suggestions({ items, onPick, style }) {
             )}
         </div>
     );
-
-    return createPortal(content, document.body);
+    //React mówi "ten komponent logicznie należy do parenta, ale fizycznie wrzuć go do <body>" - to rozwiązuje problemy z overflow, z-index, layout
+    return createPortal(content, document.body); 
 }
